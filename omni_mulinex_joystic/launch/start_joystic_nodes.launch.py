@@ -31,17 +31,18 @@ def generate_launch_description():
 
     joy_event_node = Node(
         package="joy",
-        exec_name="joy_node",
+        executable="joy_node",
         output="screen"
     ) 
 
     joy_node = Node(
         package="omni_mulinex_joystic",
-        exec_name="omni_mul_joystic_node",
+        executable="omni_mul_joystic_node",
         output="screen",
         parameters=[joy_cfg_file]
     )
-    return[
+    return LaunchDescription([
         joy_event_node,
         joy_node
     ]
+    )
