@@ -1,6 +1,6 @@
 OmniMulinex_Joystic:
   ros__parameters:
-    bag_folder: /home/jacopo/Desktop
+    bag_folder: /home/pietro/Desktop
     sup_vel_x: 2.0
     sup_vel_y: 2.0
     sup_omega: 1.0

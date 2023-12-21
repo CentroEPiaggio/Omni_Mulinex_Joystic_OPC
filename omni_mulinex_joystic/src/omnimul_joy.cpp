@@ -4,7 +4,7 @@
 #include <cmath>
 #include "rclcpp/serialization.hpp"
 
-#define BASE_WS "/home/jacopo/Documents/"
+#define BASE_WS "/home/pietro/"
 #define BAG_NAME "/Experiment_OM"
 #define BAG_TOPIC "Joystic_Command"
 #define CONTROLLER "state_broadcaster/"
@@ -12,7 +12,7 @@
 #define X_VEL_AX 1
 #define Y_VEL_AX 0
 #define OM_VEL_AX 3
-#define HEIGHT_VEL_AX 4
+#define HEIGHT_VEL_AX 2
 #define HOMING_BUTTON 0
 #define EMERG_BUTTON 1
 #define MAX_COUNTER_STT_STAMP 500
@@ -121,6 +121,7 @@ namespace omni_mulinex_joy
         
 
         cmd_pub_ = this->create_publisher<OM_JoyCmd>(OM_CONTROLLER+std::string("command"),input_qos,opt_cmd);
+
 
         timer_ = this->create_wall_timer(dur,std::bind(&OmniMulinex_Joystic::main_callback,this),node_cb_grp);
 
@@ -238,7 +239,7 @@ namespace omni_mulinex_joy
     {
         // set the message 
         auto time_stamp = this->now();
-        cmd_msg_.set__v_x(v_x_);
+        cmd_msg_.set__v_x(-v_x_);
         cmd_msg_.set__v_y(v_y_);
         cmd_msg_.set__omega(omega_);
         cmd_msg_.set__height_rate(h_rate_);

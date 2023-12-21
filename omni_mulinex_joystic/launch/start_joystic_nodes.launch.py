@@ -45,4 +45,4 @@ def generate_launch_description():
         joy_event_node,
         joy_node
     ]
-    )
+)
