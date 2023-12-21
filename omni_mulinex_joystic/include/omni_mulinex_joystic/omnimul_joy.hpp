@@ -13,7 +13,7 @@
 #include "std_srvs/srv/set_bool.hpp"
 
 #define MAX_LIN_VEL 0.5
-#define MAX_ROT_VEL 0.5
+#define MAX_ROT_VEL 1.0
 #define MAX_HEIGHT_RATE 0.05
 
 namespace omni_mulinex_joy
