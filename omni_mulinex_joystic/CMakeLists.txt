@@ -77,7 +77,7 @@ install(
 
 
 install(
-  DIRECTORY launch config
+  DIRECTORY csv_files launch config
   DESTINATION share/${PROJECT_NAME}
 )
 

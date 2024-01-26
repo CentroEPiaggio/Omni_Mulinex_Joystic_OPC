@@ -6,4 +6,7 @@ OmniMulinex_Joystic:
     sup_omega: 1.0
     sup_height_rate: 0.3
     deadzone_joy: 0.1
+    csv_path: "/home/pietro/ros2_ws/src/omni_mulinex_joystic/csv_files/velocity_ref.csv"
+    T_task: 6.0
+    timer_duration: 100
     
