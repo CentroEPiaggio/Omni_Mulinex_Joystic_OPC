@@ -299,7 +299,7 @@ namespace omni_mulinex_joy
         
         // set the message 
         auto time_stamp = this->now();
-        cmd_msg_.set__v_x(v_x_);
+        cmd_msg_.set__v_x(-v_x_);
         cmd_msg_.set__v_y(v_y_);
         cmd_msg_.set__omega(omega_);
         cmd_msg_.set__height_rate(h_rate_);
