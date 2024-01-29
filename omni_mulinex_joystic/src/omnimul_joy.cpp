@@ -4,7 +4,7 @@
 #include <cmath>
 #include "rclcpp/serialization.hpp"
 
-#define BASE_WS "/home/jacopo/Documents/"
+#define BASE_WS "/home/pietro/"
 #define BAG_NAME "/Experiment_OM"
 #define BAG_TOPIC "Joystic_Command"
 #define CONTROLLER "state_broadcaster/"
@@ -15,6 +15,7 @@
 #define HEIGHT_VEL_AX 4
 #define HOMING_BUTTON 0
 #define EMERG_BUTTON 1
+#define VEL_MODE_BUTTON 3
 #define MAX_COUNTER_STT_STAMP 500
 
 namespace omni_mulinex_joy
@@ -32,6 +33,8 @@ namespace omni_mulinex_joy
         sup_omega_ = sup_omega_>MAX_ROT_VEL?MAX_ROT_VEL:sup_omega_;
         sup_height_rate_ = this->get_parameter("sup_height_rate").as_double();
         sup_height_rate_ = sup_height_rate_>MAX_HEIGHT_RATE?MAX_HEIGHT_RATE:sup_height_rate_;
+        csv_file_ = this->get_parameter("csv_path").as_string();
+        T_ = this->get_parameter("T_task").as_double();
         register_state_ = this->get_parameter("save_state").as_bool();
         timer_dur_ = this->get_parameter("timer_duration").as_int();
         bag_folder_ = this->get_parameter("bag_folder").as_string();
@@ -87,11 +90,7 @@ namespace omni_mulinex_joy
     
         // stt_qos.reliability(rclcpp::ReliabilityPolicy::BestEffort);
         // stt_qos.deadline(stt_dur);
-        input_qos.deadline(dur);
-
-        
-
-        
+        input_qos.deadline(dur);        
       
 
         // associate to the subscriber both the callback group to access to the data variable with Mutex Exclusion and the event
@@ -122,44 +121,88 @@ namespace omni_mulinex_joy
 
         cmd_pub_ = this->create_publisher<OM_JoyCmd>(OM_CONTROLLER+std::string("command"),input_qos,opt_cmd);
 
+
         timer_ = this->create_wall_timer(dur,std::bind(&OmniMulinex_Joystic::main_callback,this),node_cb_grp);
 
         hom_srv_ = this->create_client<TransictionService>(OM_CONTROLLER+std::string("homing_srv"),srvs_qos.get_rmw_qos_profile(),node_cb_grp);
-        emrgy_srv_ = this->create_client<TransictionService>(OM_CONTROLLER+std::string("emergency_erv"),srvs_qos.get_rmw_qos_profile(),node_cb_grp);
-
+        emrgy_srv_ = this->create_client<TransictionService>(OM_CONTROLLER + std::string("emergency_srv"), srvs_qos.get_rmw_qos_profile(), node_cb_grp);
 
 
     }
+
+    std::vector<double> OmniMulinex_Joystic::extractVelocityFromCSV()
+    {
+        std::string line;
+        std::vector<double> ref;
+
+        file_.open(csv_file_);
+
+        if (!file_.is_open())
+        {
+            RCLCPP_WARN(this->get_logger(), "Error in file opening");
+        }
+        else
+        {
+            // RCLCPP_INFO(this->get_logger(), "File is open");
+            try
+            {
+                while(std::getline(file_, line, ','))
+                {
+                    ref.push_back(std::stod(line));
+                }
+            }
+            catch(const std::exception& e)
+            {
+                RCLCPP_ERROR(this->get_logger(), "Error converting string to double: %s", e.what());
+            }
+
+            file_.close();
+        }
+
+        return ref;
+    }
+
     void OmniMulinex_Joystic::joy_command(const std::shared_ptr<JoyCommand> msg)
     {
         double n2_v;
 
-        // axis 1 is vx, axis 0 is vy, axis 3 is omega and axis 4 is height rate
-        v_x_ = - msg->axes[X_VEL_AX];
-        v_x_ = (v_x_ < deadzone_ && v_x_  > - deadzone_ ) ? 0.0:sup_vx_*v_x_; 
-        v_y_ = msg->axes[Y_VEL_AX];
-        v_y_ = (v_y_ < deadzone_ && v_y_  > - deadzone_ ) ? 0.0:sup_vy_*v_y_;
-
-       
-        // normlize if the commanded velocity exed 1
-        n2_v = std::sqrt(std::pow(v_x_,2) + std::pow(v_y_,2));
-        // RCLCPP_INFO(this->get_logger(),"vx: %f, vy:%f and n2_v %f",v_x_,v_y_,n2_v);
-        if(n2_v > MAX_LIN_VEL)
+        if ((msg->buttons[VEL_MODE_BUTTON] == 1.0 || vel_ref_state) && !old_emg_but_)
         {
-            v_x_ *= (MAX_LIN_VEL/n2_v);
-            v_y_ *= (MAX_LIN_VEL/n2_v);
+            vel_ref_state = true;
         }
-        // RCLCPP_INFO(this->get_logger(),"vx: %f, vy:%f",v_x_,v_y_);
+        else
+        {
+            // axis 1 is vx, axis 0 is vy, axis 3 is omega and axis 4 is height rate
+            v_x_ = msg->axes[X_VEL_AX];
+            v_x_ = (v_x_ < deadzone_ && v_x_  > - deadzone_ ) ? 0.0:sup_vx_*v_x_; 
+            v_y_ = msg->axes[Y_VEL_AX];
+            v_y_ = (v_y_ < deadzone_ && v_y_  > - deadzone_ ) ? 0.0:sup_vy_*v_y_;
 
         
-        omega_ = msg->axes[OM_VEL_AX];
-        omega_ = (omega_ < deadzone_ && omega_  > - deadzone_ ) ? 0.0:sup_omega_*omega_;
-        h_rate_ = msg->axes[HEIGHT_VEL_AX];
-        h_rate_ = (h_rate_ < deadzone_ && h_rate_  > - deadzone_ ) ? 0.0:sup_height_rate_*h_rate_;
+            // normlize if the commanded velocity exed 1
+            n2_v = std::sqrt(std::pow(v_x_,2) + std::pow(v_y_,2));
+            // RCLCPP_INFO(this->get_logger(),"vx: %f, vy:%f and n2_v %f",v_x_,v_y_,n2_v);
+            if(n2_v > MAX_LIN_VEL)
+            {
+                v_x_ *= (MAX_LIN_VEL/n2_v);
+                v_y_ *= (MAX_LIN_VEL/n2_v);
+            }
+            // RCLCPP_INFO(this->get_logger(),"vx: %f, vy:%f",v_x_,v_y_);
+        
+
+        
+            omega_ = msg->axes[OM_VEL_AX];
+            omega_ = (omega_ < deadzone_ && omega_  > - deadzone_ ) ? 0.0:sup_omega_*omega_;
+            h_rate_ = msg->axes[HEIGHT_VEL_AX];
+            h_rate_ = (h_rate_ < deadzone_ && h_rate_  > - deadzone_ ) ? 0.0:sup_height_rate_*h_rate_;
+
+        }
 
         // RCLCPP_INFO(this->get_logger(),"h_rate %f",h_rate_);
         // RCLCPP_INFO(this->get_logger(),"%d",(!old_hom_but_ && msg->buttons[HOMING_BUTTON]==1.0));
         // RCLCPP_INFO(this->get_logger(),"PASS");
+
+        // Homing button
         if(!old_hom_but_ && msg->buttons[HOMING_BUTTON]==1.0)
         {
 
@@ -169,11 +212,10 @@ namespace omni_mulinex_joy
                 srv_req_->data = true;
                 old_hom_but_ = true;
                 using ServiceResponseFuture = rclcpp::Client<TransictionService>::SharedFuture;
-                auto response_received_callback = [this](ServiceResponseFuture future) {
-                auto result = future.get();
-                RCLCPP_INFO(this->get_logger(), "Result is: %s with message %s", result->success?std::string("True").c_str():std::string("False").c_str(),
-                result->message.c_str());
-                
+                auto response_received_callback = [this](ServiceResponseFuture future) 
+                {
+                    auto result = future.get();
+                    RCLCPP_INFO(this->get_logger(), "Result is: %s with message %s", result->success?std::string("True").c_str():std::string("False").c_str(), result->message.c_str());
                 };
                 auto res_f = hom_srv_->async_send_request(srv_req_,response_received_callback);
                 
@@ -181,6 +223,8 @@ namespace omni_mulinex_joy
         }
         else
             old_hom_but_ = false;
+
+        // Emergency button
         if(!old_emg_but_ && msg->buttons[EMERG_BUTTON] == 1.0)
         {
             RCLCPP_INFO(this->get_logger(),"%d",emrgy_srv_->service_is_ready());
@@ -189,17 +233,17 @@ namespace omni_mulinex_joy
                 srv_req_->data = true;
                 old_emg_but_ = true;
                 using ServiceResponseFuture = rclcpp::Client<TransictionService>::SharedFuture;
-                auto response_received_callback = [this](ServiceResponseFuture future) {
-                auto result = future.get();
-                RCLCPP_INFO(this->get_logger(), "Result is: %s with message %s", result->success?std::string("True").c_str():std::string("False").c_str(),
-                result->message.c_str());
-                
+                auto response_received_callback = [this](ServiceResponseFuture future) 
+                {
+                    auto result = future.get();
+                    RCLCPP_INFO(this->get_logger(), "Result is: %s with message %s", result->success?std::string("True").c_str():std::string("False").c_str(), result->message.c_str());
                 };
                 auto res = emrgy_srv_->async_send_request(srv_req_,response_received_callback);
             }
         }
         else    
             old_emg_but_ = false;
+
         
     }
 
@@ -236,6 +280,23 @@ namespace omni_mulinex_joy
 
     void OmniMulinex_Joystic::main_callback()
     {
+        if (vel_ref_state)
+        {
+            std::vector<double> vel_x = extractVelocityFromCSV();
+            if (count_elem_ < vel_x.size())
+            {
+                v_x_ = vel_x[count_elem_];
+                // RCLCPP_INFO(this->get_logger(), "Vel_command = %f", v_x_);
+                count_elem_++;
+                // RCLCPP_INFO(this->get_logger(), "Counter = %d", count_elem_);
+            }
+            else
+            {
+                vel_ref_state = false;
+                count_elem_ = 0;
+            }
+        }
+        
         // set the message 
         auto time_stamp = this->now();
         cmd_msg_.set__v_x(-v_x_);

@@ -8,12 +8,13 @@
 #include "rclcpp/qos.hpp"
 #include "rclcpp/qos_event.hpp"
 #include <string>
+#include <fstream>
 #include "rosbag2_cpp/writer.hpp"
 #include "rclcpp/serialization.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 
 #define MAX_LIN_VEL 0.5
-#define MAX_ROT_VEL 1.0
+#define MAX_ROT_VEL 1.5
 #define MAX_HEIGHT_RATE 0.05
 
 namespace omni_mulinex_joy
@@ -39,8 +40,12 @@ namespace omni_mulinex_joy
                 this->declare_parameter("timer_duration",100);
                 this->declare_parameter("state_duration",1);
                 this->declare_parameter("deadzone_joy",0.1);
+                this->declare_parameter("csv_path", "pino");
+                this->declare_parameter("T_task", 6.0);
+
                 get_param();
                 set_tools();
+                RCLCPP_INFO(this->get_logger(),"Completed Joystic Node Contructor");
 
             }
             void close()
@@ -54,7 +59,10 @@ namespace omni_mulinex_joy
             // function to setup sub/pub and service
             void set_tools();
 
-            // callback to listen on the joy node topic 
+            // Reference extraction
+            std::vector<double> extractVelocityFromCSV();
+
+            // callback to listen on the joy node topic
             void joy_command(const std::shared_ptr<JoyCommand> msg);
 
             //state subscribe callback 
@@ -71,17 +79,21 @@ namespace omni_mulinex_joy
 
             OM_JoyCmd cmd_msg_;
             int timer_dur_,stt_period_;
-            double sup_vx_,sup_vy_,sup_omega_,sup_height_rate_, v_x_,v_y_,omega_,h_rate_,deadzone_;
+            double sup_vx_,sup_vy_,sup_omega_,sup_height_rate_, v_x_,v_y_,omega_,h_rate_,deadzone_, T_;
             bool robot_ready_ = false, register_state_; 
             JoyCommand cmd_value_;
-            std::string bag_folder_;
+            std::string bag_folder_, csv_file_;
             std::unique_ptr<rosbag2_cpp::Writer> writer_;
             std::shared_ptr<rclcpp::Client<TransictionService>> hom_srv_,emrgy_srv_;
             bool old_hom_but_ = false;
             bool old_emg_but_ = false;
+            bool vel_ref_state = false;
+            // bool vel_mode_but_ = false;
+            std::ifstream file_;
             std::shared_ptr<TransictionService::Request> srv_req_;
             std::shared_ptr<TransictionService::Response> srv_res_;
             int count_=0;
+            unsigned int count_elem_ = 0;
             std::vector<std::string> focused_name_ = {
                      "RF_HFE","RF_KFE", "LF_HFE", "LF_KFE"
             };
