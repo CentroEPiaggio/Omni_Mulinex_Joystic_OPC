@@ -17,3 +17,7 @@ export ROS_DOMAIN_ID=#ROBOT_ID
 ros2 launch  omni_mulinex_joystic start_joystic_nodes.launch.py
 ```
 If the command does not run try to execute  `sudo su` after the colcon command. 
+
+REMEMBER TO LOOK AT THE PATH WHERE THE BAGS ARE SAVED AND WHERE THE CSV FILES ARE STORED.
+
+The Matlab file for the velocity profile generation is inside the csv files folder.

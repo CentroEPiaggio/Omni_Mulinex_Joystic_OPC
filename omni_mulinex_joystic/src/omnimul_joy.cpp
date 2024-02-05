@@ -7,6 +7,7 @@
 #define BASE_WS "/home/pietro/"
 #define BAG_NAME "/Experiment_OM"
 #define BAG_TOPIC "Joystic_Command"
+#define BAG_TOPIC_STATE "Joystic_Command"
 #define CONTROLLER "state_broadcaster/"
 #define OM_CONTROLLER "OM_controller/"
 #define X_VEL_AX 1
@@ -49,6 +50,7 @@ namespace omni_mulinex_joy
         rclcpp::QoS cmd_qos(10),stt_qos(10),input_qos(10);
         rclcpp::ServicesQoS srvs_qos = rclcpp::ServicesQoS();
         std::string bag_exp_name;
+        
         std::chrono::duration dur = std::chrono::milliseconds(timer_dur_), stt_dur = std::chrono::milliseconds(stt_period_);
         std::shared_ptr<rclcpp::CallbackGroup> node_cb_grp = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
         rclcpp::SubscriptionOptions opt_stt, input_opt;
@@ -60,13 +62,20 @@ namespace omni_mulinex_joy
         // save the bag path on string         
         bag_exp_name = BASE_WS + bag_folder_ + BAG_NAME + std::string("_") + std::to_string(lt_now->tm_year+1900) + "_" + std::to_string(lt_now->tm_mon+1) + "_" + std::to_string(lt_now->tm_mday) + "_" +
             std::to_string(lt_now->tm_hour) + ":" + std::to_string(lt_now->tm_min) + ":" +std::to_string(lt_now->tm_sec);
+        const rosbag2_storage::StorageOptions str_opt= rosbag2_storage::StorageOptions(
+        {
+            bag_exp_name,"mcap"
 
+
+        });
         // create the writer 
         writer_ = std::make_unique<rosbag2_cpp::Writer>();
+        writer2_ = std::make_unique<rosbag2_cpp::Writer>();
         // try to open the new bag
         try
         {
-            writer_->open(bag_exp_name);
+            writer_->open(str_opt);
+            // writer2_->open(bag_exp_name);
         }
         catch(const std::exception& e)
         {
@@ -80,10 +89,12 @@ namespace omni_mulinex_joy
             rmw_get_serialization_format(),
             ""}
             );
-
-
-
-        
+        RCLCPP_INFO(get_logger(),"pass");
+        writer_->create_topic(
+            {CONTROLLER + std::string("joints_state"),
+             "pi3hat_moteus_int_msgs/msg/JointsStates",
+             rmw_get_serialization_format(),
+             ""});
         // set the QOS for the Wireless communication for both the command data, containing the joystic input, and the 
         // state data, provided by the interface 
         cmd_qos.reliability(rclcpp::ReliabilityPolicy::BestEffort);
@@ -104,8 +115,10 @@ namespace omni_mulinex_joy
                 RCLCPP_WARN(logger,"The state subscriber deadline has been missed, the counter is %d and its variation is %d"
                 ,event.total_count,event.total_count_change);
             };
-            stt_sub_ = this->create_subscription<OM_State>(CONTROLLER+std::string("joints_state"),stt_qos,std::bind(&OmniMulinex_Joystic::stt_callback,this,_1));  
+            stt_sub_ = this->create_subscription<OM_State>(CONTROLLER+std::string("joints_state"),stt_qos,std::bind(&OmniMulinex_Joystic::stt_callback,this,_1));
+            
         }
+        tmp_sub_ = this->create_subscription<OM_State>(CONTROLLER + std::string("joints_state"), stt_qos, std::bind(&OmniMulinex_Joystic::tmp_callback, this, _1));
         // associate the subscription to joy topic to the CallbackGroup and the deadline event callback
 
         input_opt.callback_group = node_cb_grp;
@@ -247,32 +260,53 @@ namespace omni_mulinex_joy
         
     }
 
-    void OmniMulinex_Joystic::stt_callback(std::shared_ptr<OM_State> msg)
+    void OmniMulinex_Joystic::stt_callback(std::shared_ptr<rclcpp::SerializedMessage> msg)
+    {
+        // count_ ++;
+        // if(count_%MAX_COUNTER_STT_STAMP == 0)
+        // {
+
+        //     auto temp = msg->temperature;
+        //     auto cur = msg->current;
+
+        //     for(size_t i = 0; i <4; i++)
+        //         RCLCPP_INFO(this->get_logger(),"the joint %s has temperature %f and current %f",
+        //         focused_name_[i].c_str(),temp[i],cur[i]);
+        //     RCLCPP_INFO(this->get_logger()," ");
+
+        //     count_ = 0;
+        // }
+        rclcpp::Time time_stamp = this->now();
+        // msg->header.set__stamp(time_stamp);
+        const std::string name = CONTROLLER + std::string("joints_state");
+        std::string type = "pi3hat_moteus_int_msgs/msg/JointsStates";
+        writer_->write(msg, name, type, time_stamp);
+    }
+    void OmniMulinex_Joystic::tmp_callback(std::shared_ptr<OM_State> msg)
     {
         count_ ++;
         if(count_%MAX_COUNTER_STT_STAMP == 0)
         {
-            
+
             auto temp = msg->temperature;
             auto cur = msg->current;
 
             for(size_t i = 0; i <4; i++)
                 RCLCPP_INFO(this->get_logger(),"the joint %s has temperature %f and current %f",
                 focused_name_[i].c_str(),temp[i],cur[i]);
-            RCLCPP_INFO(this->get_logger()," ");  
+            RCLCPP_INFO(this->get_logger()," ");
+
             count_ = 0;
         }
         
-
     }
-
-    // void OmniMulinex_Joystic::stt_callback(std::shared_ptr<rclcpp::SerializedMessage> msg)
+    // void OmniMulinex_Joystic::stt_callback(std::shared_ptr<OM_State> msg)
     // {
     //     rclcpp::Time time_stamp = this->now();
     //     const std::string name = CONTROLLER+std::string("joints_state");
-    //     const std::string type = "pi3hat_moteus_int_msgs/msg/JointsStates";
+    //     const std::string type = "pi3hat_moteus_inttu_msgs/msg/JointsStates";
     //     writer_-> write(msg,name,type,time_stamp);
-        
+
     //     RCLCPP_INFO(this->get_logger(),"pass");
         
 
@@ -299,7 +333,7 @@ namespace omni_mulinex_joy
         
         // set the message 
         auto time_stamp = this->now();
-        cmd_msg_.set__v_x(-v_x_);
+        cmd_msg_.set__v_x(v_x_);
         cmd_msg_.set__v_y(v_y_);
         cmd_msg_.set__omega(omega_);
         cmd_msg_.set__height_rate(h_rate_);
