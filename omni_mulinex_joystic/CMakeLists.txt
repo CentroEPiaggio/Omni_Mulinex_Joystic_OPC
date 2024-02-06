@@ -44,6 +44,7 @@ ament_target_dependencies(
 add_executable(
   omni_mul_joystic_node
   src/om_joy_main.cpp
+  src/bag_reader.py
 )
 
 target_link_libraries(omni_mul_joystic_node 

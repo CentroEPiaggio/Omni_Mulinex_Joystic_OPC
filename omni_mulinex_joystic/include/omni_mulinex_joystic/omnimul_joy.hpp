@@ -12,6 +12,7 @@
 #include "rosbag2_cpp/writer.hpp"
 #include "rclcpp/serialization.hpp"
 #include "std_srvs/srv/set_bool.hpp"
+#include "rosbag2_cpp/storage_options.hpp"
 
 #define MAX_LIN_VEL 0.5
 #define MAX_ROT_VEL 1.5
@@ -66,24 +67,26 @@ namespace omni_mulinex_joy
             void joy_command(const std::shared_ptr<JoyCommand> msg);
 
             //state subscribe callback 
-            // void stt_callback(std::shared_ptr<rclcpp::SerializedMessage> msg);
-            void stt_callback(std::shared_ptr<OM_State> msg);
+            void stt_callback(std::shared_ptr<rclcpp::SerializedMessage> msg);
+            void tmp_callback(std::shared_ptr<OM_State> msg);
             
             // timer callback to send the message at the desired frequency 
             void main_callback();
 
             std::shared_ptr<rclcpp::Subscription<JoyCommand>> cmd_sub_;
             std::shared_ptr<rclcpp::Publisher<OM_JoyCmd>> cmd_pub_;
-            std::shared_ptr<rclcpp::Subscription<OM_State>> stt_sub_;
+            std::shared_ptr<rclcpp::Subscription<OM_State>> stt_sub_,tmp_sub_;
             std::shared_ptr<rclcpp::TimerBase> timer_;
 
             OM_JoyCmd cmd_msg_;
             int timer_dur_,stt_period_;
             double sup_vx_,sup_vy_,sup_omega_,sup_height_rate_, v_x_,v_y_,omega_,h_rate_,deadzone_, T_;
-            bool robot_ready_ = false, register_state_; 
+            bool robot_ready_ = false, register_state_, emrg_temp = false; 
             JoyCommand cmd_value_;
+            OM_State stt_msg_;
             std::string bag_folder_, csv_file_;
             std::unique_ptr<rosbag2_cpp::Writer> writer_;
+            std::unique_ptr<rosbag2_cpp::Writer> writer2_;
             std::shared_ptr<rclcpp::Client<TransictionService>> hom_srv_,emrgy_srv_;
             bool old_hom_but_ = false;
             bool old_emg_but_ = false;
