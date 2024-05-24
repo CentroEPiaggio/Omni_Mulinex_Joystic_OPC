@@ -44,5 +44,4 @@ def generate_launch_description():
     return LaunchDescription([
         joy_event_node,
         joy_node
-    ]
-)
+    ])
