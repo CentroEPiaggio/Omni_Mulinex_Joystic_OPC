@@ -1,6 +1,6 @@
 OmniMulinex_Joystic:
   ros__parameters:
-    bag_folder: /home/punk-opc/Desktop
+    bag_folder: /home/ros/docker_pronto_ws/
     sup_vel_x: 2.0
     sup_vel_y: 2.0
     sup_omega: 5.0

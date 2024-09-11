@@ -22,7 +22,7 @@ def generate_launch_description():
     joy_cfg_file = os.path.join(joy_node_path,"config","joy_node.yaml")
 
     subprocess.check_output(
-        ["ros2 control load_controller OM_controller --set-state active "]
+        ["ros2 control load_controller omni_controller --set-state active "]
         ,shell=True)
     
     subprocess.check_output(

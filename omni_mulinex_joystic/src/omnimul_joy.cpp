@@ -8,7 +8,7 @@
 #define BAG_NAME "/Experiment_OM"
 #define BAG_TOPIC "Joystic_Command"
 #define CONTROLLER "state_broadcaster/"
-#define OM_CONTROLLER "OM_controller/"
+#define OM_CONTROLLER "omni_controller/"
 #define X_VEL_AX 1
 #define Y_VEL_AX 0
 #define OM_VEL_AX 3
@@ -56,7 +56,7 @@ namespace omni_mulinex_joy
         time_t tm_now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         auto lt_now = std::localtime(&tm_now);
         // save the bag path on string         
-        bag_exp_name = BASE_WS + bag_folder_ + BAG_NAME + std::string("_") + std::to_string(lt_now->tm_year+1900) + "_" + std::to_string(lt_now->tm_mon+1) + "_" + std::to_string(lt_now->tm_mday) + "_" +
+        bag_exp_name =  bag_folder_ + BAG_NAME + std::string("_") + std::to_string(lt_now->tm_year+1900) + "_" + std::to_string(lt_now->tm_mon+1) + "_" + std::to_string(lt_now->tm_mday) + "_" +
             std::to_string(lt_now->tm_hour) + ":" + std::to_string(lt_now->tm_min) + ":" +std::to_string(lt_now->tm_sec);
 
         // create the writer 
@@ -142,7 +142,7 @@ namespace omni_mulinex_joy
         double n2_v;
 
         // axis 1 is vx, axis 0 is vy, axis 3 is omega and axis 4 is height rate
-        v_x_ = - msg->axes[X_VEL_AX];
+        v_x_ =  msg->axes[X_VEL_AX];
         v_x_ = (v_x_ < deadzone_ && v_x_  > - deadzone_ ) ? 0.0:sup_vx_*v_x_; 
         v_y_ = msg->axes[Y_VEL_AX];
         v_y_ = (v_y_ < deadzone_ && v_y_  > - deadzone_ ) ? 0.0:sup_vy_*v_y_;
