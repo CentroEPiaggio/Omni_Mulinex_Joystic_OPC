@@ -8,7 +8,7 @@
 #define BAG_NAME "/Experiment_OM"
 #define BAG_TOPIC "Joystic_Command"
 #define CONTROLLER "state_broadcaster/"
-#define OM_CONTROLLER "omni_controller/"
+#define OM_CONTROLLER "omni_control/"
 #define X_VEL_AX 1
 #define Y_VEL_AX 0
 #define OM_VEL_AX 3
@@ -71,13 +71,6 @@ namespace omni_mulinex_joy
             std::cerr << e.what() << '\n';
             assert(true);
         }
-        // da vedere
-        writer_ -> create_topic(
-            {BAG_TOPIC,
-            "pi3hat_moteus_int_msgs/msg/OmniMulinexCommand",
-            rmw_get_serialization_format(),
-            ""}
-            );
 
 
 
