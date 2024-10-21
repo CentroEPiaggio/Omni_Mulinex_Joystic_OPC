@@ -60,24 +60,24 @@ namespace omni_mulinex_joy
             std::to_string(lt_now->tm_hour) + ":" + std::to_string(lt_now->tm_min) + ":" +std::to_string(lt_now->tm_sec);
 
         // create the writer 
-        writer_ = std::make_unique<rosbag2_cpp::Writer>();
+        // writer_ = std::make_unique<rosbag2_cpp::Writer>();
         // try to open the new bag
-        try
-        {
-            writer_->open(bag_exp_name);
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << e.what() << '\n';
-            assert(true);
-        }
-        // da vedere
-        writer_ -> create_topic(
-            {BAG_TOPIC,
-            "pi3hat_moteus_int_msgs/msg/OmniMulinexCommand",
-            rmw_get_serialization_format(),
-            ""}
-            );
+        // try
+        // {
+        //     writer_->open(bag_exp_name);
+        // }
+        // catch(const std::exception& e)
+        // {
+        //     std::cerr << e.what() << '\n';
+        //     assert(true);
+        // }
+        // // da vedere
+        // writer_ -> create_topic(
+        //     {BAG_TOPIC,
+        //     "pi3hat_moteus_int_msgs/msg/OmniMulinexCommand",
+        //     rmw_get_serialization_format(),
+        //     ""}
+        //     );
 
 
 
@@ -253,6 +253,6 @@ namespace omni_mulinex_joy
         cmd_msg_.header.set__stamp(time_stamp);
        
         cmd_pub_->publish(cmd_msg_);
-        writer_ -> write(cmd_msg_,BAG_TOPIC,time_stamp);
+        // writer_ -> write(cmd_msg_,BAG_TOPIC,time_stamp);
     }
 }
